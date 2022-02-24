@@ -16,5 +16,5 @@ def get_avail_gpus():
 
 
 if __name__ == '__main__':
-    elif '--gpus' in sys.argv:
+    if '--gpus' in sys.argv:
         print(get_avail_gpus())
