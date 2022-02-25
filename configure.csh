@@ -23,6 +23,8 @@ cat <<'EOF'
 'EOF'
 
 sleep 1
+echo 'set path=($path /share/$GROUP/$USER/.local/bin)' >> /home/$USER/.tcshrc
+
 module load conda cuda tensorflow
 pip install --user loguru humanfriendly jsonpickle GPUtil python-dotenv tqdm "pymongo[srv]" pandas matplotlib
 
