@@ -24,7 +24,7 @@ cat <<'EOF'
 
 sleep 1
 module load conda cuda tensorflow
-pip install --user loguru humanfriendly jsonpickle GPUtil python-dotenv tqdm "pymongo[srv]"
+pip install --user loguru humanfriendly jsonpickle GPUtil python-dotenv tqdm "pymongo[srv]" pandas matplotlib
 
 wget -O megadetector_v4_1_0.pb https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb
 
