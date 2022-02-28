@@ -141,15 +141,20 @@ def main(images_dir, confidence, restored_results):
 
 
 if __name__ == '__main__':
-    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-    logger.add(f'logs/logs_{ts}.log')
     parser = argparse.ArgumentParser()
     parser.add_argument('--images-dir', type=str, help='Path to the source images folder (local)', required=True)
     parser.add_argument('--confidence', help='Confidence threshold', required=True)
     parser.add_argument('--resume', help='Resume from last checkpoint')
     parser.add_argument('--animal-only', help='Only filter animal detections', default=False, action='store_true')
     parser.add_argument('--skip-list', help='Path to the skip list file')
+    parser.add_argument('--jobid', help='Job id')
     args = parser.parse_args()
+
+    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+    if args.jobid:
+        logger.add(f'logs/megadetector_{args.jobid}.log')
+    else:
+        logger.add(f'logs/logs_{ts}.log')
     
     try:
         logger.debug(f'Images directory: {args.images_dir}')
