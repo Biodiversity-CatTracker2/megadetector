@@ -20,6 +20,10 @@ from CameraTraps.detection import run_tf_detector_batch
 from CameraTraps.visualization import visualize_detector_output
 
 
+class GPUNotAvailable(Exception):
+    pass
+
+
 def setup_dirs(images_dir):
     img_extensions = ['.jpg', '.jpeg', '.png', '.JPG', '.JPEG', '.PNG']
     images_list = sum([glob(f'{images_dir}/*{ext}') for ext in img_extensions], [])
@@ -78,6 +82,9 @@ def filter_output(data, output_folder, visualization_dir, images_dir):
 def main(images_dir, confidence, restored_results):
     logger.debug(tf.__version__)
     logger.debug(f'GPU available: {tf.test.is_gpu_available()}')
+
+    if not tf.test.is_gpu_available():
+        raise GPUNotAvailable(f'No available GPUs. Terminating... Folder of terminated job: {images_dir}')
 
     images_list, output_folder, visualization_dir, output_file_path = setup_dirs(
         images_dir)

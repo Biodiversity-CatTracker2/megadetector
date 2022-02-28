@@ -11,8 +11,12 @@
 module load conda cuda tensorflow
 nvidia-smi
 
+set PARENT_IMAGES_DIR="/gpfs_common/share03/$GROUP/$USER/megadetector/$IMAGES_DIR"
+
 set AVAIL_GPUS=`python helpers.py --gpus`
 echo "AVAIL_GPUS: $AVAIL_GPUS"
 if ( $AVAIL_GPUS == "" ) set AVAIL_GPUS="1"
 
-setenv CUDA_VISIBLE_DEVICES "$AVAIL_GPUS"; python megadetector.py --images-dir "/gpfs_common/share03/$GROUP/$USER/megadetector/$IMAGES_DIR" --confidence "$CONFIDENCE"
+echo "DIRECTORY: $PARENT_IMAGES_DIR"
+
+setenv CUDA_VISIBLE_DEVICES "$AVAIL_GPUS"; python megadetector.py --images-dir "$PARENT_IMAGES_DIR" --confidence "$CONFIDENCE"

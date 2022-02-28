@@ -28,7 +28,10 @@ echo "Answer the prompts...\n"
 
 printf "ENTER THE FULL GOOGLE DRIVE FOLDER PATH (DO NOT INCLUDE 'SHARED WITH ME' OR 'MY DRIVE' IN THE PATH!): "
 set GOOGLE_DRIVE_FOLDER_FULL_PATH="$<"
-set IMAGES_DIR=`basename "${GOOGLE_DRIVE_FOLDER_FULL_PATH}"`
+
+#set IMAGES_DIR=`basename "${GOOGLE_DRIVE_FOLDER_FULL_PATH}"`
+printf "LOCAL FOLDER PATH: "
+set IMAGES_DIR="$<"
 
 printf "ENTER THE DESIRED CONFIDENCE THRESHOLD (MUST BE DECIMAL BETWEEN 0.0-1.0!): "
 set CONFIDENCE=$<
@@ -40,18 +43,22 @@ sed -i "/#BSUB -W/c\#BSUB -W $JOB_TIME" megadetector_job.csh
 printf "ARE YOU THE ORIGINAL OWNER OF THE FOLDER (Y/N)? "
 set RCLONE_ANS=$<
 
+printf "SKIP DOWNLOAD? (Y/N) "
+set SKIP_DOWNLOAD=$<
 
+
+if ( $SKIP_DOWNLOAD == N | $SKIP_DOWNLOAD == n ) \
 cat <<'EOF'
-    ___   _____      ___  _ _    ___   _   ___ ___ _  _  ___   ___   _ _____ _         
-   |   \ / _ \ \    / | \| | |  / _ \ /_\ |   |_ _| \| |/ __| |   \ /_|_   _/_\        
-   | |) | (_) \ \/\/ /| .` | |_| (_) / _ \| |) | || .` | (_ | | |) / _ \| |/ _ \ _ _ _ 
-   |___/ \___/ \_/\_/ |_|\_|____\___/_/ \_|___|___|_|\_|\___| |___/_/ \_|_/_/ \_(_(_(_)
-                                                                                       
+___   _____      ___  _ _    ___   _   ___ ___ _  _  ___   ___   _ _____ _         
+|   \ / _ \ \    / | \| | |  / _ \ /_\ |   |_ _| \| |/ __| |   \ /_|_   _/_\        
+| |) | (_) \ \/\/ /| .` | |_| (_) / _ \| |) | || .` | (_ | | |) / _ \| |/ _ \ _ _ _ 
+|___/ \___/ \_/\_/ |_|\_|____\___/_/ \_|___|___|_|\_|\___| |___/_/ \_|_/_/ \_(_(_(_)
+                                                                                   
 'EOF'
 
-if ( $RCLONE_ANS == y | $RCLONE_ANS == Y ) ./rclone copy gdrive:"$GOOGLE_DRIVE_FOLDER_FULL_PATH" "$IMAGES_DIR" --transfers 32 -P --stats-one-line
-if ( $RCLONE_ANS == n | $RCLONE_ANS == N ) ./rclone --drive-shared-with-me copy gdrive:"$GOOGLE_DRIVE_FOLDER_FULL_PATH" "$IMAGES_DIR" --transfers 32 -P --stats-one-line
-echo "\nFinished downloading!\n"
+if ( $SKIP_DOWNLOAD == N | $SKIP_DOWNLOAD == n ) if ( $RCLONE_ANS == y | $RCLONE_ANS == Y ) ./rclone copy gdrive:"$GOOGLE_DRIVE_FOLDER_FULL_PATH" "$IMAGES_DIR" --transfers 32 -P --stats-one-line
+if ( $SKIP_DOWNLOAD == N | $SKIP_DOWNLOAD == n ) if ( $RCLONE_ANS == n | $RCLONE_ANS == N ) ./rclone --drive-shared-with-me copy gdrive:"$GOOGLE_DRIVE_FOLDER_FULL_PATH" "$IMAGES_DIR" --transfers 32 -P --stats-one-line
+if ( $SKIP_DOWNLOAD == N | $SKIP_DOWNLOAD == n ) echo "\nFinished downloading!\n"
 
 bsub -env "IMAGES_DIR='$IMAGES_DIR', CONFIDENCE='$CONFIDENCE', GROUP='$GROUP', USER='$USER'" < megadetector_job.csh
 
