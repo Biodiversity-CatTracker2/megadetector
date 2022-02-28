@@ -27,7 +27,7 @@ malyeta@ncsu.edu                            `  `.`.`._`.-._`--.)
 echo "Answer the prompts...\n"
 
 printf "ENTER THE FULL GOOGLE DRIVE FOLDER PATH (DO NOT INCLUDE 'SHARED WITH ME' OR 'MY DRIVE' IN THE PATH!): "
-set GOOGLE_DRIVE_FOLDER_FULL_PATH=$<
+set GOOGLE_DRIVE_FOLDER_FULL_PATH="$<"
 set IMAGES_DIR=`basename "${GOOGLE_DRIVE_FOLDER_FULL_PATH}"`
 
 printf "ENTER THE DESIRED CONFIDENCE THRESHOLD (MUST BE DECIMAL BETWEEN 0.0-1.0!): "
