@@ -1,22 +1,18 @@
 #!/bin/tcsh
 #BSUB -n 1
-#BSUB -W 01:00
-#BSUB -J megadetector_%J
-#BSUB -o logs/megadetector_%J.out
-#BSUB -e logs/megadetector_%J.err
+#BSUB -W 02:00
+#BSUB -J %J
+#BSUB -o logs/%J.out
+#BSUB -e logs/%J.err
 #BSUB -q gpu
 #BSUB -R "select[rtx2080||gtx1080||p100]"
-#BSUB -gpu "num=2:mode=shared:mps=yes"
+#BSUB -gpu "num=1:mode=shared:mps=yes"
+#BSUB -x  # exclusive node to avoid running out of memory
 
 module load conda cuda tensorflow
 nvidia-smi
 
 set PARENT_IMAGES_DIR="/gpfs_common/share03/$GROUP/$USER/megadetector/$IMAGES_DIR"
-
-set AVAIL_GPUS=`python helpers.py --gpus`
-echo "AVAIL_GPUS: $AVAIL_GPUS"
-if ( $AVAIL_GPUS == "" ) set AVAIL_GPUS="1"
-
 echo "DIRECTORY: $PARENT_IMAGES_DIR"
 
-setenv CUDA_VISIBLE_DEVICES "$AVAIL_GPUS"; python megadetector.py --images-dir "$PARENT_IMAGES_DIR" --confidence "$CONFIDENCE"
+python megadetector.py --images-dir "$PARENT_IMAGES_DIR" --confidence "$CONFIDENCE" --resume

@@ -8,14 +8,19 @@ from glob import glob
 from pathlib import Path
 
 import tensorflow as tf
+from dotenv import load_dotenv
 from loguru import logger
 from tqdm import tqdm
 
 sys.path.insert(0, f'{os.getcwd()}/ai4eutils')
 sys.path.insert(0, f'{os.getcwd()}/CameraTraps')
 
-from CameraTraps.detection import run_tf_detector_batch  # noqa
-from CameraTraps.visualization import visualize_detector_output  # noqa
+try:
+    from CameraTraps.detection import run_tf_detector_batch  # noqa
+    from CameraTraps.visualization import visualize_detector_output  # noqa
+except RuntimeError:
+    print('RuntimeError')
+    sys.exit(0)
 
 
 class GPUNotAvailable(Exception):
@@ -24,16 +29,20 @@ class GPUNotAvailable(Exception):
 
 def setup_dirs(images_dir):
     img_extensions = ['.jpg', '.jpeg', '.png', '.JPG', '.JPEG', '.PNG']
-    images_list = sum([glob(f'{images_dir}/*{ext}') for ext in img_extensions], [])
+    images_list = sum([glob(f'{images_dir}/*{ext}') for ext in img_extensions],
+                      [])
     images_list_len = len(images_list)
     if not images_list_len:
-        sys.exit(f'No images in the current directory: {images_dir} (subdirs are not included)')
+        sys.exit(
+            f'No images in the current directory: {images_dir} (subdirs are not included)'
+        )
     logger.info(f'Number of images in the folder: {images_list_len}')
 
     if args.skip_list:
         with open(args.skip_list) as j:
             skip_list = json.load(j)
-        images_list = list(set(skip_list) ^ set([Path(x).name for x in images_list]))
+        images_list = list(
+            set(skip_list) ^ set([Path(x).name for x in images_list]))
         images_list = [f'{images_dir}/{x}' for x in images_list]
         logger.info(f'Skipped {images_list_len - len(images_list)} image')
 
@@ -84,7 +93,10 @@ def main(images_dir, confidence, _restored_results):
     logger.debug(f'GPU available: {tf.test.is_gpu_available()}')
 
     if not tf.test.is_gpu_available():
-        raise GPUNotAvailable(f'No available GPUs. Terminating... Folder of terminated job: {images_dir}')
+        if not args.CPU:
+            raise GPUNotAvailable(
+                f'No available GPUs. Terminating... Folder of terminated job: {images_dir}'
+            )
 
     images_list, output_folder, visualization_dir, output_file_path = setup_dirs(
         images_dir)
@@ -93,7 +105,7 @@ def main(images_dir, confidence, _restored_results):
     results = run_tf_detector_batch.load_and_run_detector_batch(
         model_file='megadetector_v4_1_0.pb',
         image_file_names=images_list,
-        checkpoint_path=args.resume,
+        checkpoint_path=ckpt_path,
         confidence_threshold=confidence,
         checkpoint_frequency=100,
         results=_restored_results,
@@ -128,8 +140,7 @@ def main(images_dir, confidence, _restored_results):
     with open(output_file_path) as j:
         data = json.load(j)
 
-    _, _ = filter_output(data, output_folder,
-                         visualization_dir, images_dir)
+    _, _ = filter_output(data, output_folder, visualization_dir, images_dir)
 
     logger.debug('Finished running `filter_output`')
     len_nd = len(glob(f"{output_folder}/no_detections/*"))
@@ -144,21 +155,40 @@ def main(images_dir, confidence, _restored_results):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--images-dir', type=str, help='Path to the source images folder (local)', required=True)
-    parser.add_argument('--confidence', help='Confidence threshold', required=True)
-    parser.add_argument('--resume', help='Resume from last checkpoint')
-    parser.add_argument('--animal-only', help='Only filter animal detections', default=False, action='store_true')
+    parser.add_argument('--images-dir',
+                        type=str,
+                        help='Path to the source images folder (local)',
+                        required=True)
+    parser.add_argument('--confidence',
+                        help='Confidence threshold',
+                        required=True)
+    parser.add_argument('--resume',
+                        action='store_true',
+                        help='Resume from the last checkpoint')
+    parser.add_argument('--animal-only',
+                        help='Only filter animal detections',
+                        action='store_true')
     parser.add_argument('--skip-list', help='Path to the skip list file')
     parser.add_argument('--jobid', help='Job id')
+    parser.add_argument('--CPU',
+                        action='store_true',
+                        help='Use CPU if GPU not available')
+    parser.add_argument('--ckpt',
+                        help='Path to checkpoint file other than default')
     args = parser.parse_args()
+
+    logger.info(f'Job id: {args.jobid}')
+
+    if Path(f'{args.images_dir}/output/_complete').exists():
+        raise Exception('Folder already completed!')
 
     ts = datetime.now().strftime('%Y%m%d_%H%M%S')
     logger.add(f'logs/{args.jobid}.log')
 
     try:
         logger.debug(f'Images directory: {args.images_dir}')
-        assert Path(args.images_dir).exists(
-        ), 'Specified images path does not exist'
+        assert Path(
+            args.images_dir).exists(), 'Specified images path does not exist'
         assert isinstance(
             float(args.confidence),
             float), 'Confidence threshold needs to be a decimal number'
@@ -166,26 +196,35 @@ if __name__ == '__main__':
         logger.exception(err)
         sys.exit(1)
 
+    ckpt_path = f'{args.images_dir}/output/ckpt.json'
+
     if args.resume:
+        logger.info('Resuming from checkpoint...')
         try:
-            assert Path(args.resume).exists(
-            ), f'Could not find a checkpoint file {args.resume}'
+            if Path(ckpt_path).exists():
+                if args.ckpt:
+                    ckpt_path = args.ckpt
+                    logger.info(
+                        'Resuming from custom checkpoint path instead of default...'
+                    )
+                with open(ckpt_path) as f:
+                    saved = json.load(f)
 
-            with open(args.resume) as f:
-                saved = json.load(f)
+                assert 'images' in saved, \
+                    'The file saved as checkpoint does not have the correct fields; cannot be restored'
 
-            assert 'images' in saved, \
-                'The file saved as checkpoint does not have the correct fields; cannot be restored'
-
-            restored_results = saved['images']
-            logger.info(
-                f'Restored {len(restored_results)} entries from the checkpoint'
-            )
+                restored_results = saved['images']
+                logger.info(
+                    f'Restored {len(restored_results)} entries from the checkpoint'
+                )
         except AssertionError as err:
             logger.exception(err)
             sys.exit(1)
     else:
-        args.resume = f'{args.images_dir}/output/checkpoint_{ts}.json'
+        logger.info('Processing from the start...')
+        restored_results = []
+
+    if not args.ckpt:
         restored_results = []
 
     main(args.images_dir, float(args.confidence), restored_results)

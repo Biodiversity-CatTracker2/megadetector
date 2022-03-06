@@ -2,6 +2,7 @@ import json
 import shlex
 import subprocess
 import sys
+import tarfile
 import time
 from pathlib import Path
 
@@ -24,7 +25,11 @@ def get_avail_gpus():
 
 def calculate_job_time(folder_path):
     cmd = shlex.split(f'./rclone lsjson -R {folder_path}')
-    p = subprocess.run(cmd, shell=False, check=True, capture_output=True, text=True)
+    p = subprocess.run(cmd,
+                       shell=False,
+                       check=True,
+                       capture_output=True,
+                       text=True)
     data = json.loads(p.stdout)
     d = [x['Size'] for x in data if '.JPG' in x['Path'] and not x['IsDir']]
     num_files = len(d)
@@ -44,8 +49,8 @@ def check_progress(folder_path):
     for file in files:
         complete_folders.append(file.split('output')[0][:-1])
 
-    print('COMPLETE')
-    print(json.dumps(complete_folders, indent=4))
+    logger.debug('COMPLETE')
+    logger.debug(json.dumps(complete_folders, indent=4))
 
     all_folders = fd.find('"" --type d', path=folder_path)
     all_ = []
@@ -58,15 +63,28 @@ def check_progress(folder_path):
     all_ = list(set(all_))
 
     no_output = [x for x in all_ if x not in complete_folders]
-    print('\n\nPENDING')
-    print(json.dumps(no_output, indent=4))
+    logger.debug('\n\nPENDING')
+    logger.debug(json.dumps(no_output, indent=4))
+
+
+def to_tar(input_path):
+    folder_name = Path(input_path).name
+    with tarfile.open(f'{folder_name}.tar', 'w') as tar:
+        tar.add(input_path, folder_name)
+    logger.info(f'Archived {input_path}')
+
+
+def from_tar(input_path):
+    with tarfile.open(input_path) as tar:
+        tar.extractall()
+    logger.info(f'Extracted {input_path}')
 
 
 if __name__ == '__main__':
     if '--gpus' in sys.argv:
         print(get_avail_gpus())
 
-    if '--job-time' in sys.argv:
+    elif '--job-time' in sys.argv:
         try:
             if not Path(sys.argv[2]).exists():
                 raise FileNotFoundError
@@ -74,7 +92,13 @@ if __name__ == '__main__':
         except (IndexError, FileNotFoundError):
             raise Exception('Missing valid local data folder path')
 
-    if '--check-progress' in sys.argv:
+    elif '--check-progress' in sys.argv:
         from fdpy import fd
         assert Path(sys.argv[2]).exists(), 'Folder does not exist!'
         check_progress(sys.argv[2])
+
+    elif '-c' in sys.argv:
+        to_tar(sys.argv[2])
+
+    elif '-x' in sys.arv:
+        from_tar(sys.argv[2])
