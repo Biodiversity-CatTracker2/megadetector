@@ -43,28 +43,28 @@ def calculate_job_time(folder_path):
     return job_time
 
 
-def check_progress(folder_path):
-    complete_folders = []
-    files = fd.find('_complete', path=folder_path)
-    for file in files:
-        complete_folders.append(file.split('output')[0][:-1])
+# def check_progress(folder_path):
+#     complete_folders = []
+#     files = fd.find('_complete', path=folder_path)
+#     for file in files:
+#         complete_folders.append(file.split('output')[0][:-1])
 
-    logger.debug('COMPLETE')
-    logger.debug(json.dumps(complete_folders, indent=4))
+#     logger.debug('COMPLETE')
+#     logger.debug(json.dumps(complete_folders, indent=4))
 
-    all_folders = fd.find('"" --type d', path=folder_path)
-    all_ = []
-    for folder in all_folders:
-        if len(folder.split('output')) == 1:
-            all_.append(folder.split('output')[0])
-        else:
-            all_.append(folder.split('output')[0][:-1])
+#     all_folders = fd.find('"" --type d', path=folder_path)
+#     all_ = []
+#     for folder in all_folders:
+#         if len(folder.split('output')) == 1:
+#             all_.append(folder.split('output')[0])
+#         else:
+#             all_.append(folder.split('output')[0][:-1])
 
-    all_ = list(set(all_))
+#     all_ = list(set(all_))
 
-    no_output = [x for x in all_ if x not in complete_folders]
-    logger.debug('\n\nPENDING')
-    logger.debug(json.dumps(no_output, indent=4))
+#     no_output = [x for x in all_ if x not in complete_folders]
+#     logger.debug('\n\nPENDING')
+#     logger.debug(json.dumps(no_output, indent=4))
 
 
 def to_tar(input_path):
@@ -92,10 +92,10 @@ if __name__ == '__main__':
         except (IndexError, FileNotFoundError):
             raise Exception('Missing valid local data folder path')
 
-    elif '--check-progress' in sys.argv:
-        from fdpy import fd
-        assert Path(sys.argv[2]).exists(), 'Folder does not exist!'
-        check_progress(sys.argv[2])
+#     elif '--check-progress' in sys.argv:
+#         from fdpy import fd
+#         assert Path(sys.argv[2]).exists(), 'Folder does not exist!'
+#         check_progress(sys.argv[2])
 
     elif '-c' in sys.argv:
         to_tar(sys.argv[2])
