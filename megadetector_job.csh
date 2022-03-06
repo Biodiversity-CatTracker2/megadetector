@@ -11,8 +11,6 @@
 
 module load conda cuda tensorflow
 nvidia-smi
+echo "DIRECTORY: $IMAGES_DIR"
 
-set PARENT_IMAGES_DIR="/gpfs_common/share03/$GROUP/$USER/megadetector/$IMAGES_DIR"
-echo "DIRECTORY: $PARENT_IMAGES_DIR"
-
-python megadetector.py --images-dir "$PARENT_IMAGES_DIR" --confidence "$CONFIDENCE" --resume
+python megadetector.py --images-dir "$IMAGES_DIR" --confidence "$CONFIDENCE" --jobid "$LSB_JOBID" --resume
