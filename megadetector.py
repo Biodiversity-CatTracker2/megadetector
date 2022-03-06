@@ -3,8 +3,6 @@ import json
 import os
 import shutil
 import sys
-import time
-import traceback
 from datetime import datetime
 from glob import glob
 from pathlib import Path
@@ -16,8 +14,8 @@ from tqdm import tqdm
 sys.path.insert(0, f'{os.getcwd()}/ai4eutils')
 sys.path.insert(0, f'{os.getcwd()}/CameraTraps')
 
-from CameraTraps.detection import run_tf_detector_batch
-from CameraTraps.visualization import visualize_detector_output
+from CameraTraps.detection import run_tf_detector_batch  # noqa
+from CameraTraps.visualization import visualize_detector_output  # noqa
 
 
 class GPUNotAvailable(Exception):
@@ -28,6 +26,8 @@ def setup_dirs(images_dir):
     img_extensions = ['.jpg', '.jpeg', '.png', '.JPG', '.JPEG', '.PNG']
     images_list = sum([glob(f'{images_dir}/*{ext}') for ext in img_extensions], [])
     images_list_len = len(images_list)
+    if not images_list_len:
+        sys.exit(f'No images in the current directory: {images_dir} (subdirs are not included)')
     logger.info(f'Number of images in the folder: {images_list_len}')
 
     if args.skip_list:
@@ -39,7 +39,7 @@ def setup_dirs(images_dir):
 
     logger.info(f'Will process {len(images_list)} images')
     logger.debug(f'Images directory: {images_dir}')
-    
+
     output_folder = f'{images_dir}/output'
     visualization_dir = f'{output_folder}/tmp'
     Path(output_folder).mkdir(exist_ok=True)
@@ -79,7 +79,7 @@ def filter_output(data, output_folder, visualization_dir, images_dir):
     return f"{output_folder}/no_detections", f"{output_folder}/with_detections"
 
 
-def main(images_dir, confidence, restored_results):
+def main(images_dir, confidence, _restored_results):
     logger.debug(tf.__version__)
     logger.debug(f'GPU available: {tf.test.is_gpu_available()}')
 
@@ -96,7 +96,7 @@ def main(images_dir, confidence, restored_results):
         checkpoint_path=args.resume,
         confidence_threshold=confidence,
         checkpoint_frequency=100,
-        results=restored_results,
+        results=_restored_results,
         n_cores=0,
         use_image_queue=False)
 
@@ -128,8 +128,8 @@ def main(images_dir, confidence, restored_results):
     with open(output_file_path) as j:
         data = json.load(j)
 
-    out_folder_nd, out_folder_wd = filter_output(data, output_folder,
-                                                 visualization_dir, images_dir)
+    _, _ = filter_output(data, output_folder,
+                         visualization_dir, images_dir)
 
     logger.debug('Finished running `filter_output`')
     len_nd = len(glob(f"{output_folder}/no_detections/*"))
@@ -138,6 +138,8 @@ def main(images_dir, confidence, restored_results):
     logger.info(f'Number of images with no detections: {len_nd}')
     logger.info(f'Number of images with detections: {len_wd}')
     logger.info(f'Data file path: {output_file_path}')
+
+    Path(f'{images_dir}/output/_complete').touch()
 
 
 if __name__ == '__main__':
@@ -151,11 +153,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-    if args.jobid:
-        logger.add(f'logs/megadetector_{args.jobid}.log')
-    else:
-        logger.add(f'logs/logs_{ts}.log')
-    
+    logger.add(f'logs/{args.jobid}.log')
+
     try:
         logger.debug(f'Images directory: {args.images_dir}')
         assert Path(args.images_dir).exists(
