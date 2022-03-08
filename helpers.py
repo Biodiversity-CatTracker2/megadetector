@@ -1,3 +1,4 @@
+import argparse
 import json
 import shlex
 import subprocess
@@ -81,24 +82,40 @@ def from_tar(input_path):
 
 
 if __name__ == '__main__':
-    if '--gpus' in sys.argv:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--gpus',
+                        help='Get GPU names with at least 50% free memory and load',
+                        action='store_true')
+    parser.add_argument('--job-time',
+                        type=str,
+                        help='Estimate the job time based on the number of images in a specified folder')
+    parser.add_argument('--c',
+                        type=str,
+                        help='Create a tarball')
+    parser.add_argument('--x',
+                        type=str,
+                        help='Extract a tarball')
+#     parser.add_argument('--check-progress',
+#                         type=str,
+#                         help='Check folder completion progress (deprecated)')
+    args = parser.parse_args()
+    
+    
+    if args.gpu:
         print(get_avail_gpus())
 
-    elif '--job-time' in sys.argv:
-        try:
-            if not Path(sys.argv[2]).exists():
-                raise FileNotFoundError
-            print(calculate_job_time(sys.argv[2]))
-        except (IndexError, FileNotFoundError):
-            raise Exception('Missing valid local data folder path')
+    elif args.job_time:
+        if not Path(args.job_time]).exists():
+            raise FileNotFoundError
+        print(calculate_job_time(args.job_time))
 
-#     elif '--check-progress' in sys.argv:
+#     elif args.check_progress:
 #         from fdpy import fd
-#         assert Path(sys.argv[2]).exists(), 'Folder does not exist!'
-#         check_progress(sys.argv[2])
+#         assert Path(args.check_progress).exists(), 'Folder does not exist!'
+#         check_progress(args.check_progress)
 
-    elif '-c' in sys.argv:
-        to_tar(sys.argv[2])
+    elif args.c:
+        to_tar(args.c)
 
-    elif '-x' in sys.arv:
-        from_tar(sys.argv[2])
+    elif args.x:
+        from_tar(args.x)
