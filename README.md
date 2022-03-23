@@ -6,7 +6,7 @@
 
 ```sh
 cd /share/$GROUP/$USER
-git clone https://github.com/Biodiversity-CatTracker2/megadetector.git
+git clone https://github.com/Biodiversity-CatTracker2/megadetector-Henry2.git megadetector
 cd megadetector
 
 chmod +x configure.csh
