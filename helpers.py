@@ -101,11 +101,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     
-    if args.gpu:
+    if args.gpus:
         print(get_avail_gpus())
 
     elif args.job_time:
-        if not Path(args.job_time]).exists():
+        if not Path(args.job_time).exists():
             raise FileNotFoundError
         print(calculate_job_time(args.job_time))
 
