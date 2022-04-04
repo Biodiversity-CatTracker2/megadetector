@@ -92,9 +92,6 @@ if __name__ == '__main__':
     parser.add_argument('--resume',
                         action='store_true',
                         help='Resume from the last checkpoint')
-    parser.add_argument('--animal-only',
-                        help='Only filter animal detections',
-                        action='store_true')
     parser.add_argument('--jobid', help='Job id')
     parser.add_argument('--CPU',
                         action='store_true',
@@ -103,7 +100,7 @@ if __name__ == '__main__':
                         help='Path to checkpoint file other than default')
     args = parser.parse_args()
 
-    _FOLDERS = [x for x in glob(f'{args.images_dir}/*') if Path(x).is_dir()]
+    _FOLDERS = [x for x in glob(f'{args.images_dir}/**/*', recursive=True) if Path(x).is_dir()]
     if len(_FOLDERS) > 1:
         logger.debug('Detected multiple subdirs! Running a loop...')
     else:
