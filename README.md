@@ -48,5 +48,5 @@ set FULL_REMOTE_PATH="<PLACEHOLDER>"  # for example: gdrive:cameratrap/deploymen
 
 ```sh
 tar -czf "results.tgz" `find data -name "*.json"`
-./rclone copy "results.tgz" $FULL_REMOTE_PATH -P --stats-one-line
+./rclone copy "results.tgz" "$FULL_REMOTE_PATH" -P --stats-one-line
 ```
