@@ -41,7 +41,7 @@ def setup_dirs(images_dir):
 
     output_folder = f'{images_dir}/output'
     Path(output_folder).mkdir(exist_ok=True)
-    output_file_path = output_folder + f'/data_{Path(images_dir).parent}_{Path(images_dir).name}.json'
+    output_file_path = output_folder + f'/data_{Path(images_dir).name}.json'
     return images_list, output_folder, output_file_path
 
 
@@ -92,6 +92,9 @@ if __name__ == '__main__':
     parser.add_argument('--resume',
                         action='store_true',
                         help='Resume from the last checkpoint')
+    parser.add_argument('--animal-only',
+                        help='Only filter animal detections',
+                        action='store_true')
     parser.add_argument('--jobid', help='Job id')
     parser.add_argument('--CPU',
                         action='store_true',
@@ -160,3 +163,4 @@ if __name__ == '__main__':
             restored_results = []
 
         main(_FOLDER, restored_results)  # noqa
+

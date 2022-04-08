@@ -51,10 +51,13 @@ rm -rf rclone-*-linux-amd64
 
 mkdir -p logs
 
-mv submit.csh submit
-chmod +x submit
-mv upload.csh upload
-chmod +x upload
+# mv submit.csh submit
+# chmod +x submit
+# mv upload.csh upload
+# chmod +x upload
 
-wget "https://d.aibird.me/a6f58f88" -O detox
-chmod +x detox
+# wget "https://d.aibird.me/a6f58f88" -O detox
+# chmod +x detox
+
+mv batch_submit.csh batch_submit
+chmod +x batch_submit

@@ -36,14 +36,17 @@ chmod +x configure.csh
 # e/n/d/r/c/s/q> q
 ```
 
-## Submit a job
+## Submit jobs
 
 ```sh
-./submit
+set FULL_REMOTE_PATH="<PLACEHOLDER>"  # for example: gdrive:cameratrap/deployments
+# if you're not the original owner of the remote folder, add `--drive-shared-with-me` to `rclone` commands
+./batch_submit.csh $FULL_REMOTE_PATH
 ```
 
-## Upload the data to Google Drive when the job is complete
+## Upload the results to Google Drive when all job are complete
 
 ```sh
-./upload
+tar -czf "results.tgz" `find data -name "*.json"`
+./rclone copy "results.tgz" $FULL_REMOTE_PATH -P --stats-one-line
 ```
