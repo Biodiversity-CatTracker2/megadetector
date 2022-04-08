@@ -156,3 +156,4 @@ cython_debug/
 data_*.json
 skip_list.json
 .idea/
+.ignore/

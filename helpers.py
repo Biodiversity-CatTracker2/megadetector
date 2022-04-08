@@ -44,30 +44,6 @@ def calculate_job_time(folder_path):
     return job_time
 
 
-# def check_progress(folder_path):
-#     complete_folders = []
-#     files = fd.find('_complete', path=folder_path)
-#     for file in files:
-#         complete_folders.append(file.split('output')[0][:-1])
-
-#     logger.debug('COMPLETE')
-#     logger.debug(json.dumps(complete_folders, indent=4))
-
-#     all_folders = fd.find('"" --type d', path=folder_path)
-#     all_ = []
-#     for folder in all_folders:
-#         if len(folder.split('output')) == 1:
-#             all_.append(folder.split('output')[0])
-#         else:
-#             all_.append(folder.split('output')[0][:-1])
-
-#     all_ = list(set(all_))
-
-#     no_output = [x for x in all_ if x not in complete_folders]
-#     logger.debug('\n\nPENDING')
-#     logger.debug(json.dumps(no_output, indent=4))
-
-
 def to_tar(input_path):
     folder_name = Path(input_path).name
     with tarfile.open(f'{folder_name}.tar', 'w') as tar:
@@ -95,9 +71,6 @@ if __name__ == '__main__':
     parser.add_argument('--x',
                         type=str,
                         help='Extract a tarball')
-#     parser.add_argument('--check-progress',
-#                         type=str,
-#                         help='Check folder completion progress (deprecated)')
     args = parser.parse_args()
     
     
@@ -108,11 +81,6 @@ if __name__ == '__main__':
         if not Path(args.job_time).exists():
             raise FileNotFoundError
         print(calculate_job_time(args.job_time))
-
-#     elif args.check_progress:
-#         from fdpy import fd
-#         assert Path(args.check_progress).exists(), 'Folder does not exist!'
-#         check_progress(args.check_progress)
 
     elif args.c:
         to_tar(args.c)

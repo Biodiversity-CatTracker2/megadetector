@@ -7,10 +7,9 @@
 #BSUB -q gpu
 #BSUB -R "select[rtx2080||gtx1080||p100]"
 #BSUB -gpu "num=1:mode=shared:mps=yes"
-#BSUB -x  # exclusive node to avoid running out of memory
 
 module load conda cuda tensorflow
 nvidia-smi
 echo "DIRECTORY: $IMAGES_DIR"
 
-python megadetector.py --images-dir "$IMAGES_DIR" --confidence "$CONFIDENCE" --jobid "$LSB_JOBID" --resume
+python megadetector.py --images-dir "$IMAGES_DIR" --jobid "$LSB_JOBID" --resume
