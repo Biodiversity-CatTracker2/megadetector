@@ -99,7 +99,7 @@ def sample_detections(detections,
     for k, v in D.items():
         random_D.update({k: random.sample(v, sample_size_per_level)})
 
-    names = {"1": "animal", "2": "person", "3": "vehicle"}
+    names = {'1': 'animal', '2': 'person', '3': 'vehicle'}
 
     ND = random.sample([x['file'] for x in no_detections],
                        sample_size_per_level)
@@ -139,14 +139,28 @@ def sample_detections(detections,
                                    hide_images_url=False,
                                    display=False)
 
-    with open('random_no_detections_sample.html', 'w') as f:
+    with open('random_detections_sample.html', 'w') as f:
         f.write(plot)
-
+    logger.info('Exported sample to `random_detections_sample.html`')
+    
 
 if __name__ == '__main__':
 
-    labels_files_path = '_data'
-    json_files = json_files = glob(f'{labels_files_path}/**/*.json',
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d',
+        '--results-dir',
+                        type=str,
+                        help='Path to the results folder with the *.json files. The results directory should be in the same parent directory as the directory of the images data (e.g., `./parent/results_dir`, `./parent/images`)',
+                        required=True)
+    parser.add_argument('-c',
+        '--max-detection-conf',
+                        type=float,
+                        help='Maximum detection confidence threshold fot detections to be kept',
+                        required=True)
+    args = parser.parse_args()
+
+    labels_folder_path = sys.argv[1]
+    json_files = json_files = glob(f'{args.results_dir}/**/*.json',
                                    recursive=True)
     logger.debug(f'Data file path example: {json_files[0]}')
 
@@ -154,6 +168,9 @@ if __name__ == '__main__':
     logger.debug(f'Number of data items: {len(data)}')
 
     detections, no_detections = split_data(data)
+
+    max_detection_conf = round(args.max_detection_conf, 1)
+    detections = create_conf_levels_dict(detections)[max_detection_conf]
 
     for ITEM in [(no_detections, 'no_detections'), (detections, 'detections')]:
         futures = []

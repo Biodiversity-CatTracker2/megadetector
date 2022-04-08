@@ -47,6 +47,16 @@ set FULL_REMOTE_PATH="<PLACEHOLDER>"  # for example: gdrive:cameratrap/deploymen
 ## Upload the results to Google Drive when all job are complete
 
 ```sh
-tar -czf "results.tgz" `find data -name "*.json"`
+set DATA_FOLDER=`basename $FULL_REMOTE_PATH`
+tar -czf "results.tgz" `find $DATA_FOLDER -name "*.json"`
 ./rclone copy "results.tgz" "$FULL_REMOTE_PATH" -P --stats-one-line
+```
+
+### Filter the results
+
+- First, move the results file (`results.tgz`) to the same parent directory where the images data folder is (e.g., `./parent/labels_folder_path`, `./parent/images`), then extract the folder and filter the data
+
+```sh
+tar -zxf "results.tgz"
+filter_megadetector_output.py --results-dir "$DATA_FOLDER" --max-detection-conf 0.3  # accepted values: 0.1-0.9
 ```
