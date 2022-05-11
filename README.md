@@ -59,5 +59,8 @@ tar -czf "results.tgz" `find $DATA_FOLDER -name "*.json"`
 
 ```sh
 tar -zxf "results.tgz"
-filter_megadetector_output.py --results-dir "$DATA_FOLDER" --max-detection-conf 0.3  # accepted values: 0.1-0.9
+
+pip install -r requirements.txt
+
+python filter_megadetector_output.py --results-dir "$DATA_FOLDER" --max-detection-conf 0.3  # accepted values: 0.1-0.9
 ```
