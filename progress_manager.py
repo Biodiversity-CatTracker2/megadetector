@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import json
 import os
+import sys
+from glob import glob
+from pathlib import Path
 
 import requests
 from dotenv import load_dotenv
@@ -63,6 +67,26 @@ class JSONBin:
 
 if __name__ == '__main__':
     load_dotenv()
-    jb = JSONBin(bin_id=os.getenv('BIN_ID'), verbose=True)
+    jb = JSONBin(bin_id=os.getenv('BIN_ID'), verbose=False)
     if not os.getenv('BIN_ID'):
         jb.create_bin()
+
+    elif '--show-bin' in sys.argv:
+        record = jb.api_request().json()['record']
+        print(json.dumps(record, indent=4))
+
+    elif '--show-progress' in sys.argv:
+        print('Calculating estimated progress...')
+        all_files = glob(f'data/**/*', recursive=True)
+        num_all_files = len([x for x in all_files if not Path(x).is_dir()])
+
+        json_data_files = glob(f'data/**/data*.json', recursive=True)
+        num_finished_files = 0
+        for file in json_data_files:
+            with open(file) as j:
+                data = json.load(j)
+                num_finished_files += len(data['images'])
+
+        print('\nEstimated pogress:')
+        p = f'({round(100 * num_finished_files / num_all_files, 2)}%)'
+        print(f'\tProcessed images: {num_finished_files}/{num_all_files} {p}')
