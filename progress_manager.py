@@ -75,11 +75,17 @@ if __name__ == '__main__':
         record = jb.api_request().json()['record']
         print(json.dumps(record, indent=4))
 
-    elif '--show-progress' in sys.argv:
-        print('Calculating estimated progress...')
+    elif '--total-files' in sys.argv:
         all_files = glob(f'data/**/*', recursive=True)
         num_all_files = len([x for x in all_files if not Path(x).is_dir()])
+        print(num_all_files)
 
+    else:
+        if len(sys.argv) == 1:
+            sys.exit('Pass the number of total files as an argument!')
+        num_all_files = int(sys.argv[1])
+
+        print('Calculating estimated progress...')
         json_data_files = glob(f'data/**/data*.json', recursive=True)
         num_finished_files = 0
         for file in json_data_files:
