@@ -1,12 +1,15 @@
+#!/usr/bin/env python
+# coding: utf-8
+
 import argparse
 import json
 import os
 import sys
-from datetime import datetime
 from glob import glob
 from pathlib import Path
 
-import tensorflow as tf
+import tensorflow as tf  # noqa
+from dotenv import load_dotenv
 from loguru import logger
 from tqdm import tqdm
 
@@ -16,6 +19,7 @@ sys.path.insert(0, f'{os.getcwd()}/CameraTraps')
 try:
     from CameraTraps.detection import run_tf_detector_batch  # noqa
     from CameraTraps.visualization import visualize_detector_output  # noqa
+    from progress_manager import JSONBin
 except RuntimeError:
     print('RuntimeError')
     sys.exit(0)
@@ -31,9 +35,10 @@ def setup_dirs(images_dir):
                       [])
     images_list_len = len(images_list)
     if not images_list_len:
-        sys.exit(
+        logger.warning(
             f'No images in the current directory: {images_dir} (subdirs are '
             f'not included)')
+        return (None, None, None)
     logger.info(f'Number of images in the folder: {images_list_len}')
 
     logger.info(f'Will process {len(images_list)} images')
@@ -56,6 +61,10 @@ def main(images_dir, _restored_results):
                 f'{images_dir} ')
 
     images_list, output_folder, output_file_path = setup_dirs(images_dir)
+
+    if not all(x for x in [images_list, output_folder, output_file_path]):
+        return
+
     logger.info(f'Number of images in folder: {len(images_list)}')
 
     results = run_tf_detector_batch.load_and_run_detector_batch(
@@ -103,7 +112,16 @@ if __name__ == '__main__':
                         help='Path to checkpoint file other than default')
     args = parser.parse_args()
 
-    _FOLDERS = [x for x in glob(f'{args.images_dir}/**/*', recursive=True) if Path(x).is_dir()]
+    load_dotenv()
+    Path('logs').mkdir(exist_ok=True)
+    logger.add(f'logs/logs.log')
+
+    jb = JSONBin(bin_id=os.getenv('BIN_ID'), verbose=True)
+
+    _FOLDERS = [
+        x for x in glob(f'{args.images_dir}/**/*', recursive=True)
+        if Path(x).is_dir()
+    ]
     if len(_FOLDERS) > 1:
         logger.debug('Detected multiple subdirs! Running a loop...')
     else:
@@ -111,14 +129,21 @@ if __name__ == '__main__':
 
     n = 0
     for _FOLDER in tqdm(_FOLDERS):
-        logger.info(f'Job id: {args.jobid}')
-
-        if len(_FOLDERS) == 1:
-            logger.add(f'logs/{args.jobid}.log')
+        if jb.status(_FOLDER) is True:
+            logger.warning(f'Finished folder {_FOLDER}! Skipping...')
+            continue
+        if jb.status(_FOLDER) == 'started':
+            logger.warning(
+                f'Started folder {_FOLDER}, but it\'s either still in '
+                'progress or needs to be resumed. Check logs and pass '
+                '`--resume` if it needs to be resumed.')
+            if not args.resume:
+                continue
         else:
-            logger.add(f'logs/{args.jobid}_{n}.log')
-            ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-            n += 1
+            logger.info(f'Starting folder: {_FOLDER}...')
+
+        jb.update_bin({_FOLDER: 'started'})
+        logger.info(f'Job id: {args.jobid}')
 
         if Path(f'{_FOLDER}/output/_complete').exists():
             raise Exception('Folder already completed!')
@@ -164,3 +189,4 @@ if __name__ == '__main__':
 
         main(_FOLDER, restored_results)  # noqa
 
+        jb.update_bin({_FOLDER: True})

@@ -7,8 +7,7 @@ from datetime import datetime
 from glob import glob
 from pathlib import Path
 
-import tensorflow as tf
-from dotenv import load_dotenv
+import tensorflow as tf  # noqa
 from loguru import logger
 from tqdm import tqdm
 
@@ -33,9 +32,8 @@ def setup_dirs(images_dir):
                       [])
     images_list_len = len(images_list)
     if not images_list_len:
-        sys.exit(
-            f'No images in the current directory: {images_dir} (subdirs are not included)'
-        )
+        sys.exit(f'No images in the current directory: {images_dir} '
+                 '(subdirs are not included)')
     logger.info(f'Number of images in the folder: {images_list_len}')
 
     if args.skip_list:
@@ -65,7 +63,8 @@ def filter_output(data, output_folder, visualization_dir, images_dir):
 
     for image in tqdm(data['images']):
         if not image['detections']:
-            out_path_nd = f'{output_folder}/no_detections/{Path(image["file"]).name}'
+            out_path_nd = f'{output_folder}/no_detections/' \
+                          f'{Path(image["file"]).name}'
             shutil.copy2(image['file'], out_path_nd)
 
         else:
@@ -80,9 +79,12 @@ def filter_output(data, output_folder, visualization_dir, images_dir):
             for file in files:
                 img_file = visualization_dir + '/anno_' + images_dir.replace(
                     '/', '~') + '~' + Path(file).name
-                out_path_with_bb = f'{images_dir}/output/with_detections_and_bb/{Path(img_file).name}'
+                out_path_with_bb = f'{images_dir}/output/'\
+                                   'with_detections_and_bb/' \
+                                   '{Path(img_file).name}'
                 shutil.copy2(img_file, out_path_with_bb)
-                out_path_wd = f'{images_dir}/output/with_detections/{Path(file).name}'
+                out_path_wd = f'{images_dir}/output/with_detections/' \
+                              f'{Path(file).name}'
                 shutil.copy2(file, out_path_wd)
 
     return f"{output_folder}/no_detections", f"{output_folder}/with_detections"
@@ -95,11 +97,11 @@ def main(images_dir, confidence, _restored_results):
     if not tf.test.is_gpu_available():
         if not args.CPU:
             raise GPUNotAvailable(
-                f'No available GPUs. Terminating... Folder of terminated job: {images_dir}'
-            )
+                f'No available GPUs. Terminating... Folder of terminated job: '
+                f'{images_dir}')
 
-    images_list, output_folder, visualization_dir, output_file_path = setup_dirs(
-        images_dir)
+    images_list, output_folder, visualization_dir, output_file_path = \
+        setup_dirs(images_dir)
     logger.info(f'Number of images in folder: {len(images_list)}')
 
     results = run_tf_detector_batch.load_and_run_detector_batch(
@@ -133,9 +135,8 @@ def main(images_dir, confidence, _restored_results):
         random_seed=None,
         render_detections_only=False)
 
-    logger.debug(
-        'Finished running `visualize_detector_output.visualize_detector_output`'
-    )
+    logger.debug('Finished running '
+                 '`visualize_detector_output.visualize_detector_output`')
 
     with open(output_file_path) as j:
         data = json.load(j)
@@ -186,6 +187,7 @@ if __name__ == '__main__':
     n = 0
     for _FOLDER in tqdm(_FOLDERS):
         logger.info(f'Job id: {args.jobid}')
+        restored_results = []
 
         if len(_FOLDERS) == 1:
             logger.add(f'logs/{args.jobid}.log')
@@ -217,18 +219,18 @@ if __name__ == '__main__':
                     if args.ckpt:
                         ckpt_path = args.ckpt
                         logger.info(
-                            'Resuming from custom checkpoint path instead of default...'
-                        )
+                            'Resuming from custom checkpoint path instead of '
+                            'default...')
                     with open(ckpt_path) as f:
                         saved = json.load(f)
 
                     assert 'images' in saved, \
-                        'The file saved as checkpoint does not have the correct fields; cannot be restored'
+                        'The file saved as checkpoint does not have the ' \
+                        'correct fields; cannot be restored'
 
                     restored_results = saved['images']
-                    logger.info(
-                        f'Restored {len(restored_results)} entries from the checkpoint'
-                    )
+                    logger.info(f'Restored {len(restored_results)} '
+                                'entries from the checkpoint')
             except AssertionError as err:
                 logger.exception(err)
                 sys.exit(1)

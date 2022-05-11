@@ -2,12 +2,11 @@ import argparse
 import json
 import shlex
 import subprocess
-import sys
 import tarfile
 import time
 from pathlib import Path
 
-import GPUtil
+import GPUtil  # noqa
 from loguru import logger
 from numpy import mean, median
 
@@ -59,21 +58,19 @@ def from_tar(input_path):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--gpus',
-                        help='Get GPU names with at least 50% free memory and load',
-                        action='store_true')
-    parser.add_argument('--job-time',
-                        type=str,
-                        help='Estimate the job time based on the number of images in a specified folder')
-    parser.add_argument('--c',
-                        type=str,
-                        help='Create a tarball')
-    parser.add_argument('--x',
-                        type=str,
-                        help='Extract a tarball')
+    parser.add_argument(
+        '--gpus',
+        help='Get GPU names with at least 50% free memory and load',
+        action='store_true')
+    parser.add_argument(
+        '--job-time',
+        type=str,
+        help='Estimate the job time based on the number of images in a '
+        'specified folder')
+    parser.add_argument('--c', type=str, help='Create a tarball')
+    parser.add_argument('--x', type=str, help='Extract a tarball')
     args = parser.parse_args()
-    
-    
+
     if args.gpus:
         print(get_avail_gpus())
 

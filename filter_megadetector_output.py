@@ -1,65 +1,68 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import random
+import argparse
+import json
 import shutil
 import sys
 from glob import glob
 from pathlib import Path
 
-import ipyplot
 import numpy as np
-import ujson as json
 import ray
+import visualize_detector_output  # noqa (from CameraTraps repo)
 from loguru import logger
 from ray.exceptions import RayTaskError
-from tqdm.notebook import tqdm
+from tqdm import tqdm
+
+# import random
+
+# import ipyplot
+# from tqdm.notebook import tqdm
 
 sys.path.insert(0, f'{Path.cwd()}/CameraTraps')
 
-import visualize_detector_output  # noqa
 
-
-def process_data(json_files, update=False):
+def process_data(jsonfiles, update=False):
     if update or not Path('all_data.json').exists():
         logger.debug('Writing data to one file...')
-        data = []
+        _data = []
 
-        for json_file in json_files:
+        for json_file in jsonfiles:
             with open(json_file) as j:
                 d = json.load(j)
-                data.append(d['images'])
-        data = sum(data, [])
+                _data.append(d['images'])
+        _data = sum(_data, [])
 
         with open('all_data.json', 'w') as j:
-            json.dump(data, j, indent=4)
+            json.dump(_data, j, indent=4)
 
     else:
         logger.debug('Reading from existing data file...')
         with open('all_data.json') as j:
-            data = json.load(j)
-    return data
+            _data = json.load(j)
+    return _data
 
 
-def split_data(data):
-    detections = []
-    no_detections = []
+def split_data(__data):
+    _detections = []
+    _no_detections = []
 
-    for x in data:
+    for x in __data:
         if x['detections']:
-            detections.append(x)
+            _detections.append(x)
         else:
-            no_detections.append(x)
+            _no_detections.append(x)
 
-    logger.debug(f'Detections: {len(detections)}\nNo'
-                 f'detections: {len(no_detections)}')
-    return detections, no_detections
+    logger.debug(f'Detections: {len(_detections)}\nNo'
+                 f'detections: {len(_no_detections)}')
+    return _detections, _no_detections
 
 
-def create_conf_levels_dict(detections):
+def create_conf_levels_dict(_detections):
     D = {round(x, 1): [] for x in np.arange(0.1, 1, 0.1)}
 
-    for x in tqdm(detections):
+    for x in tqdm(_detections):
         for k in D:
             if x['max_detection_conf'] >= k:
                 D[k].append(x)
@@ -90,78 +93,82 @@ def sort_files(x):
     shutil.copy(x["file"], f'{cat_str}/{x["file"]}')
 
 
-def sample_detections(detections,
-                      sample_size_per_level=300,
-                      output_image_width=1280):
-    random.seed(8)
-    random_D = {}
+# def sample_detections(detections,
+#                       sample_size_per_level=300,
+#                       output_image_width=1280):
+#     random.seed(8)
+#     random_D = {}
+#
+#     for k, v in D.items():
+#         random_D.update({k: random.sample(v, sample_size_per_level)})
+#
+#     names = {'1': 'animal', '2': 'person', '3': 'vehicle'}
+#
+#     ND = random.sample([x['file'] for x in no_detections],
+#                        sample_size_per_level)
+#     Path('no_detections_sample').mkdir(exist_ok=True)
+#     for x in ND:
+#         shutil.copy2(x, f'no_detections_sample/{Path(x).name}')
+#
+#     for level in np.arange(0.1, 1, 0.1):
+#         level = round(level, 1)
+#         level_dir_path = f'levels/{level}'
+#         Path(level_dir_path).mkdir(exist_ok=True, parents=True)
+#
+#         visualize_detector_output.visualize_detector_output(
+#             detector_output_path=random_D[level],
+#             out_dir=level_dir_path,
+#             confidence=level,
+#             images_dir='.',
+#             is_azure=False,
+#             sample=-1,
+#             output_image_width=output_image_width,
+#             random_seed=None,
+#             render_detections_only=True)
+#
+#     display_width = output_image_width / 2
+#     zoom_scale = output_image_width / display_width
+#
+#     levels_folders = glob(f'levels/*')
+#
+#     images = [glob(f'{level}/*') for level in levels_folders]
+#     labels = [[Path(Path(x).parent).name for x in y] for y in images]
+#
+#     plot = ipyplot.plot_class_tabs(images,
+#                                    labels,
+#                                    max_imgs_per_tab=sample_size_per_level,
+#                                    img_width=display_width,
+#                                    zoom_scale=zoom_scale,
+#                                    hide_images_url=False,
+#                                    display=False)
+#
+#     with open('random_detections_sample.html', 'w') as f:
+#         f.write(plot)
+#     logger.info('Exported sample to `random_detections_sample.html`')
 
-    for k, v in D.items():
-        random_D.update({k: random.sample(v, sample_size_per_level)})
 
-    names = {'1': 'animal', '2': 'person', '3': 'vehicle'}
+def opts():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-d',
+        '--results-dir',
+        type=str,
+        help='Path to the results folder with the *.json files. The results '
+        'directory should be in the same parent directory as the directory of '
+        'the images data (e.g., `./parent/results_dir`, `./parent/images`)',
+        required=True)
+    parser.add_argument(
+        '-c',
+        '--max-detection-conf-threshold',
+        type=float,
+        help='Max. detection confidence threshold for detections to be kept',
+        required=True)
+    return parser.parse_args()
 
-    ND = random.sample([x['file'] for x in no_detections],
-                       sample_size_per_level)
-    Path('no_detections_sample').mkdir(exist_ok=True)
-    for x in ND:
-        shutil.copy2(x, f'no_detections_sample/{Path(x).name}')
-
-    for level in np.arange(0.1, 1, 0.1):
-        level = round(level, 1)
-        level_dir_path = f'levels/{level}'
-        Path(level_dir_path).mkdir(exist_ok=True, parents=True)
-
-        visualize_detector_output.visualize_detector_output(
-            detector_output_path=random_D[level],
-            out_dir=level_dir_path,
-            confidence=level,
-            images_dir='.',
-            is_azure=False,
-            sample=-1,
-            output_image_width=output_image_width,
-            random_seed=None,
-            render_detections_only=True)
-
-    display_width = output_image_width / 2
-    zoom_scale = output_image_width / display_width
-
-    levels_folders = glob(f'levels/*')
-
-    images = [glob(f'{level}/*') for level in levels_folders]
-    labels = [[Path(Path(x).parent).name for x in y] for y in images]
-
-    plot = ipyplot.plot_class_tabs(images,
-                                   labels,
-                                   max_imgs_per_tab=sample_size_per_level,
-                                   img_width=display_width,
-                                   zoom_scale=zoom_scale,
-                                   hide_images_url=False,
-                                   display=False)
-
-    with open('random_detections_sample.html', 'w') as f:
-        f.write(plot)
-    logger.info('Exported sample to `random_detections_sample.html`')
-    
 
 if __name__ == '__main__':
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-d',
-        '--results-dir',
-                        type=str,
-                        help='Path to the results folder with the *.json files. The results directory should be in the same parent directory as the directory of the images data (e.g., `./parent/results_dir`, `./parent/images`)',
-                        required=True)
-    parser.add_argument('-c',
-        '--max-detection-conf',
-                        type=float,
-                        help='Maximum detection confidence threshold fot detections to be kept',
-                        required=True)
-    args = parser.parse_args()
-
-    labels_folder_path = sys.argv[1]
-    json_files = json_files = glob(f'{args.results_dir}/**/*.json',
-                                   recursive=True)
+    args = opts()
+    json_files = glob(f'{args.results_dir}/**/*.json', recursive=True)
     logger.debug(f'Data file path example: {json_files[0]}')
 
     data = process_data(json_files)

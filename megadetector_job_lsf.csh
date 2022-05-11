@@ -12,4 +12,4 @@ module load conda cuda tensorflow
 nvidia-smi
 echo "DIRECTORY: $IMAGES_DIR"
 
-python megadetector.py --images-dir "$IMAGES_DIR" --jobid "$LSB_JOBID" --resume
+python megadetector-lite.py --images-dir "$IMAGES_DIR" --jobid "$LSB_JOBID" --resume
