@@ -1,98 +1,127 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import argparse
 import json
 import os
 import sys
 from glob import glob
 from pathlib import Path
 
-import requests
-from dotenv import load_dotenv
-from loguru import logger
 
+class Progress:
 
-class JSONBin:
-
-    def __init__(self, bin_id=os.getenv('BIN_ID'), verbose=False):
-        self.bin_id = bin_id
+    def __init__(self, data_dir, progress_file='progress.json', verbose=False):
+        self.data_dir = data_dir
+        self.progress_file = progress_file
         self.verbose = verbose
 
-    def api_request(self, method=None, data=None):
-        headers = {
-            'Content-Type': 'application/json',
-            'X-Master-Key': os.environ['JSONBIN_KEY']
-        }
+    def scan_subdirs(self):
 
-        if self.bin_id:
-            url = f'https://api.jsonbin.io/v3/b/{self.bin_id}'
-        else:
-            url = 'https://api.jsonbin.io/v3/b/'
-            headers.update({'X-Bin-Name': 'data'})
+        def scan(_dir):
+            return [x.path for x in os.scandir(_dir) if x.is_dir()]
 
-        if self.verbose:
-            logger.debug(f'Request: {url} {data}')
+        subdirs = scan(self.data_dir)
+        return [x for x in sum([scan(_dir) for _dir in subdirs], []) if x]
 
-        if method == 'post':
-            resp = requests.post(url, json=data, headers=headers)
-        elif method == 'put':
-            resp = requests.put(url, json=data, headers=headers)
-        else:
-            resp = requests.get(url, headers=headers)
+    def create_progress_file(self):
+        print('Creating a `progress.json` file...')
+        subdirs = self.scan_subdirs()
+        subdirs = [x for x in subdirs if Path(x).name != 'output']
+        for _subdir in subdirs:
+            if all(Path(x).is_dir() for x in glob(f'{_subdir}/*')):
+                subdirs.remove(_subdir)
+        subdirs_dict = {k: False for k in subdirs}
+        with open(self.progress_file, 'w') as j:
+            json.dump(subdirs_dict, j, indent=4)
 
         if self.verbose:
-            logger.debug(f'Response: {resp.json()}')
-        return resp
+            print(json.dumps(subdirs_dict, indent=4))
+        print('Done!')
+        return subdirs_dict
 
-    def create_bin(self):
-        data = {'_': True}
-        resp = self.api_request(method='post', data=data)
-        bin_id = resp.json()['metadata']['id']
-        print(f'Bin ID: {bin_id}')
-        return bin_id
+    def update_progress(self, data):
+        with open(self.progress_file) as j:
+            progress_data = json.load(j)
 
-    def update_bin(self, data):
-        read_resp = self.api_request()
-        record = read_resp.json()['record']
-        record.update(data)
-        if record.get('_'):
-            record.pop('_')
-        put_resp = self.api_request(method='put', data=record)
-        return put_resp.json()
+        progress_data.update(data)
+
+        with open(self.progress_file, 'w') as j:
+            json.dump(progress_data, j, indent=4)
+
+        if self.verbose:
+            print(json.dumps(progress_data, indent=4))
+        return progress_data
 
     def status(self, relative_folder_path):
-        record = self.api_request().json()['record']
-        return record.get(relative_folder_path)
+        with open(self.progress_file) as j:
+            progress_data = json.load(j)
+        return progress_data.get(relative_folder_path)
 
-
-if __name__ == '__main__':
-    load_dotenv()
-    jb = JSONBin(bin_id=os.getenv('BIN_ID'), verbose=False)
-    if not os.getenv('BIN_ID'):
-        jb.create_bin()
-
-    elif '--show-bin' in sys.argv:
-        record = jb.api_request().json()['record']
-        print(json.dumps(record, indent=4))
-
-    elif '--total-files' in sys.argv:
-        all_files = glob(f'data/**/*', recursive=True)
-        num_all_files = len([x for x in all_files if not Path(x).is_dir()])
-        print(num_all_files)
-
-    else:
-        if len(sys.argv) == 1:
-            sys.exit('Pass the number of total files as an argument!')
-        num_all_files = int(sys.argv[1])
-
+    def show_progress(self):
         print('Calculating estimated progress...')
-        json_data_files = glob(f'data/**/data*.json', recursive=True)
+        num_all_images = 0
+
+        with open(self.progress_file) as j:
+            progress_data = json.load(j)
+
+        for folder in progress_data:
+            num_all_images += len(
+                [x for x in glob(f'{folder}/*') if not Path(x).is_dir()])
+
+        json_data_files = glob(f'{self.data_dir}/**/data*.json',
+                               recursive=True)
         num_finished_files = 0
         for file in json_data_files:
             with open(file) as j:
                 data = json.load(j)
                 num_finished_files += len(data['images'])
 
-        print('\nEstimated pogress:')
-        p = f'({round(100 * num_finished_files / num_all_files, 2)}%)'
-        print(f'\tProcessed images: {num_finished_files}/{num_all_files} {p}')
+        print('\nEstimated progress:')
+        p = f'({round(100 * num_finished_files / num_all_images, 2)}%)'
+        print(f'\tProcessed images: {num_finished_files}/{num_all_images} {p}')
+        return
+
+
+def opts() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d',
+                        '--data-dir',
+                        help='Path to the data directory',
+                        type=str,
+                        required=True)
+    parser.add_argument('--create',
+                        help='Create a progress file',
+                        action='store_true')
+    parser.add_argument('--show-progress',
+                        action='store_true',
+                        help='Show current progress')
+    parser.add_argument('--progress-file',
+                        help='Path to the progress JSON file',
+                        type=str,
+                        default='progress.json')
+    parser.add_argument('--verbose',
+                        help='Print lots more stuff',
+                        action='store_true')
+    return parser.parse_args()
+
+
+if __name__ == '__main__':
+    args = opts()
+
+    print(f'Data directory: {args.data_dir}')
+    assert Path(args.data_dir).exists(
+    ), 'The directory path you passed does not exist!'
+
+    if not args.create and not args.show_progress:
+        sys.exit('No options were passed...')
+
+    progress = Progress(data_dir=args.data_dir,
+                        progress_file=args.progress_file,
+                        verbose=args.verbose)
+
+    if args.create:
+        progress.create_progress_file()
+
+    if args.show_progress:
+        progress.show_progress()
