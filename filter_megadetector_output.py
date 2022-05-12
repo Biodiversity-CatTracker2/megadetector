@@ -24,12 +24,12 @@ sys.path.insert(0, f'{os.getcwd()}/CameraTraps')
 from CameraTraps.visualization import visualize_detector_output  # noqa
 
 
-def process_data(jsonfiles, update=False):
+def process_data(jsonfiles):
     _data = []
 
     for json_file in jsonfiles:
-        with open(json_file) as j:
-            d = json.load(j)
+        with open(json_file) as _j:
+            d = json.load(_j)
             _data.append(d['images'])
     _data = sum(_data, [])
     return _data
@@ -74,11 +74,11 @@ def create_conf_levels_dict(_detections):
         count_dict.update({k: len(v)})
         logger.debug(f'{k}: {len(v)}')
 
-    with open('detections_per_conf_lvl.json', 'w') as j:
-        json.dump(D, j, indent=4)
+    with open('detections_per_conf_lvl.json', 'w') as js:
+        json.dump(D, js, indent=4)
 
-    with open('detections_per_conf_lvl_count.json', 'w') as j:
-        json.dump(count_dict, j, indent=4)
+    with open('detections_per_conf_lvl_count.json', 'w') as js:
+        json.dump(count_dict, js, indent=4)
     return D
 
 
@@ -87,7 +87,6 @@ def _sort_files(x):
         cat_str = 'detections'
     else:
         cat_str = 'no_detections'
-    dir_path = Path(f'{cat_str}/{Path(Path(x["file"]).parent)}')
 
     if not Path(x['file']).exists():
         return x['file']
@@ -160,14 +159,11 @@ def sort_files(x):
 
 def opts():
     parser = argparse.ArgumentParser()
-    # parser.add_argument(
-    #     '-d',
-    #     '--results-dir',
-    #     type=str,
-    #     help='Path to the results folder with the *.json files. The results '
-    #     'directory should be in the same parent directory as the directory of '
-    #     'the images data (e.g., `./parent/results_dir`, `./parent/images`)',
-    #     required=True)
+    # parser.add_argument( '-d', '--results-dir', type=str, help='Path to
+    # the results folder with the *.json files. The results ' 'directory
+    # should be in the same parent directory as the directory of ' 'the
+    # images data (e.g., `./parent/results_dir`, `./parent/images`)',
+    # required=True)
     parser.add_argument('-d',
                         '--data-dir',
                         type=str,
@@ -207,7 +203,9 @@ if __name__ == '__main__':
     with open('failed.json', 'w') as j:
         json.dump(failed, j, indent=4)
 
-    logger.error(f'Files that MegaDetector failed to predict: {json.dumps(failed, indent=4)}')
+    logger.error(
+        'Files that MegaDetector failed to predict: '
+        f'{json.dumps(failed, indent=4)}')
 
     max_detection_conf = round(args.max_detection_conf_threshold, 1)
     detections = create_conf_levels_dict(detections)[max_detection_conf]
