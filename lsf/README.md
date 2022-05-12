@@ -58,6 +58,6 @@ bsub -env "DATA_DIR=$DATA_DIR, CONF=$CONF" < megadetector_job.csh
 ## Upload the results when the job is complete
 
 ```sh
-cp 'results.zip' 'failed.json' filtered_data
+cp 'results.zip' 'failed.json' 'detections_per_conf_lvl.json' 'detections_per_conf_lvl_count.json' filtered_data
 ./rclone copy filtered_data "$FULL_REMOTE_PATH/results" -P
 ```

@@ -25,7 +25,6 @@ from CameraTraps.visualization import visualize_detector_output  # noqa
 
 
 def process_data(jsonfiles, update=False):
-    logger.debug('Writing data to one file...')
     _data = []
 
     for json_file in jsonfiles:
@@ -69,11 +68,17 @@ def create_conf_levels_dict(_detections):
         ])
 
     logger.debug('Data size in each conf value:')
+
+    count_dict = {}
     for k, v in D.items():
+        count_dict.update({k: len(v)})
         logger.debug(f'{k}: {len(v)}')
 
-    with open('conf_dict.json', 'w') as j:
+    with open('detections_per_conf_lvl.json', 'w') as j:
         json.dump(D, j, indent=4)
+
+    with open('detections_per_conf_lvl_count.json', 'w') as j:
+        json.dump(count_dict, j, indent=4)
     return D
 
 

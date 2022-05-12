@@ -53,8 +53,7 @@ cd ..
 
 python filter_megadetector_output.py -d "$DATA_DIR" -c "$CONF" &&
 
-rclone copy 'conf_dict.json' "$RCLONE_SOURCE/results"
-rclone copy 'failed.json' "$RCLONE_SOURCE/results"
+cp 'detections_per_conf_lvl.json' 'detections_per_conf_lvl_count.json' 'failed.json' filtered_data
 
 # -----------------------------------------------------------------------------
 
