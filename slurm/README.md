@@ -41,14 +41,6 @@ rclone config
 # e/n/d/r/c/s/q> q
 ```
 
-## Download the data
-
-```sh
-FULL_REMOTE_PATH="<PLACEHOLDER>"  # Full path to where the data is kept, including the remote entry name
-DATA_DIR="data"
-rclone copy "$FULL_REMOTE_PATH" "$DATA_DIR" --transfers 32 -P
-```
-
 ## Submit the batch job
 
 1. Edit the main batch job file: `megadetector_job.sh`.
@@ -60,9 +52,3 @@ sbatch megadetector_job.sh
 sbatch track_progress_job.sh
 ```
 
-## Upload the results when the job is complete
-
-```sh
-cp 'results.zip' 'failed.json' filtered_data
-rclone copy filtered_data "$FULL_REMOTE_PATH/results" -P
-```

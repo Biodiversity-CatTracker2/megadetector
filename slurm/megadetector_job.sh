@@ -29,7 +29,9 @@ nvidia-smi
 # -----------------------------------------------------------------------------
 
 curl https://notify.run/$NOTIFY_CHANNEL_ID -d "Started"
+
 rclone copy "$RCLONE_SOURCE" $DATA_DIR -P --transfers 32
+
 curl https://notify.run/$NOTIFY_CHANNEL_ID -d "Ended"
 sleep 10
 
@@ -54,5 +56,8 @@ python filter_megadetector_output.py -d "$DATA_DIR" -c "$CONF" &&
 rclone copy 'conf_dict.json' "$RCLONE_SOURCE/results"
 rclone copy 'failed.json' "$RCLONE_SOURCE/results"
 
+# -----------------------------------------------------------------------------
+
+rclone copy filtered_data "$RCLONE_SOURCE/results" -P --transfers 32
 
 echo "Finished. Upload relevant logs."
